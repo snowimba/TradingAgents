@@ -289,8 +289,35 @@ async function loadProviders() {
   const sel = document.getElementById('provider');
   sel.innerHTML = providers.map(p => `<option value="${p.key}">${p.key}</option>`).join('');
   sel.addEventListener('change', updateModels);
-  updateModels();
+
+  // Apply .env defaults first, then override with localStorage if present
+  try {
+    const defRes = await fetch('/api/defaults');
+    const defaults = await defRes.json();
+    if (defaults.llm_provider) sel.value = defaults.llm_provider;
+    updateModels();
+    // Set model values from .env (may not be in dropdown — add as custom option if needed)
+    if (defaults.quick_think_llm) setModelValue('quick-model', defaults.quick_think_llm);
+    if (defaults.deep_think_llm) setModelValue('deep-model', defaults.deep_think_llm);
+    if (defaults.output_language) document.getElementById('output-language').value = defaults.output_language;
+    if (defaults.max_debate_rounds) document.getElementById('research-depth').value = defaults.max_debate_rounds;
+  } catch(e) {}
+
   restoreSettings();
+}
+
+function setModelValue(selectId, modelValue) {
+  const el = document.getElementById(selectId);
+  if ([...el.options].some(o => o.value === modelValue)) {
+    el.value = modelValue;
+  } else {
+    // Model not in dropdown — add it as a custom option
+    const opt = document.createElement('option');
+    opt.value = modelValue;
+    opt.textContent = modelValue + ' (from .env)';
+    el.insertBefore(opt, el.firstChild);
+    el.value = modelValue;
+  }
 }
 
 function updateModels() {
@@ -318,13 +345,30 @@ async function loadHistory() {
     const statusBadge = item.status === 'interrupted'
       ? '<span style="color:var(--warning);font-size:0.75rem;margin-left:8px">[interrupted]</span>'
       : '';
+    const ratingMap = {
+      'Buy': '强烈买入', 'Overweight': '超配/加仓', 'Hold': '持有',
+      'Underweight': '低配/减仓', 'Sell': '强烈卖出'
+    };
+    const ratingColors = {
+      'Buy': '#4ade80', 'Overweight': '#86efac', 'Hold': '#fcd34d',
+      'Underweight': '#fca5a5', 'Sell': '#f87171'
+    };
+    let ratingBadge = '';
+    if (item.rating) {
+      const cn = ratingMap[item.rating] || item.rating;
+      const color = ratingColors[item.rating] || 'var(--text)';
+      ratingBadge = `<span style="color:${color};font-weight:600;font-size:0.85rem">${item.rating} (${cn})</span>`;
+    }
     return `
     <div class="history-item" onclick="loadDetail('${item.ticker}','${item.date}')">
       <div>
         <span class="ticker">${item.ticker}</span>
         <span class="meta" style="margin-left:12px">${item.date}</span>${statusBadge}
       </div>
-      <span class="meta">${new Date(item.created).toLocaleString()}</span>
+      <div style="display:flex;align-items:center;gap:12px">
+        ${ratingBadge}
+        <span class="meta">${new Date(item.created).toLocaleString()}</span>
+      </div>
     </div>
   `}).join('');
 }

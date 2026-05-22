@@ -57,8 +57,23 @@ async def get_providers():
     return providers
 
 
+@app.get("/api/defaults")
+async def get_defaults():
+    """Return current config defaults from .env / DEFAULT_CONFIG."""
+    return {
+        "llm_provider": DEFAULT_CONFIG.get("llm_provider", "openai"),
+        "deep_think_llm": DEFAULT_CONFIG.get("deep_think_llm", ""),
+        "quick_think_llm": DEFAULT_CONFIG.get("quick_think_llm", ""),
+        "backend_url": DEFAULT_CONFIG.get("backend_url", ""),
+        "output_language": DEFAULT_CONFIG.get("output_language", "English"),
+        "max_debate_rounds": DEFAULT_CONFIG.get("max_debate_rounds", 1),
+    }
+
+
 @app.get("/api/history")
 async def get_history():
+    from tradingagents.agents.utils.rating import parse_rating
+
     results_dir = Path(DEFAULT_CONFIG["results_dir"])
     history = []
     if not results_dir.exists():
@@ -74,12 +89,20 @@ async def get_history():
         # Completed analyses
         for log_file in sorted(logs_dir.glob("full_states_log_*.json"), reverse=True):
             date_str = log_file.stem.replace("full_states_log_", "")
+            rating = ""
+            try:
+                data = json.loads(log_file.read_text(encoding="utf-8"))
+                decision_text = data.get("final_trade_decision", "")
+                rating = parse_rating(decision_text) if decision_text else ""
+            except Exception:
+                pass
             history.append({
                 "ticker": ticker,
                 "date": date_str,
                 "file": str(log_file),
                 "created": datetime.fromtimestamp(log_file.stat().st_mtime).isoformat(),
                 "status": "completed",
+                "rating": rating,
             })
         # Partial (interrupted) analyses
         for partial_file in sorted(logs_dir.glob("partial_*.json"), reverse=True):
@@ -92,6 +115,7 @@ async def get_history():
                     "file": str(partial_file),
                     "created": datetime.fromtimestamp(partial_file.stat().st_mtime).isoformat(),
                     "status": "interrupted",
+                    "rating": "",
                 })
 
     history.sort(key=lambda x: x["created"], reverse=True)
