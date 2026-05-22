@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TradingAgents</title>
+<style>
+:root {
+  --bg: #0f1117;
+  --surface: #1a1d27;
+  --border: #2a2d3a;
+  --text: #e4e4e7;
+  --text-dim: #8b8d97;
+  --accent: #22c55e;
+  --accent-dim: #166534;
+  --danger: #ef4444;
+  --warning: #f59e0b;
+  --info: #3b82f6;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+}
+.container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 0; border-bottom: 1px solid var(--border); margin-bottom: 24px;
+}
+header h1 { font-size: 1.5rem; color: var(--accent); }
+header .subtitle { color: var(--text-dim); font-size: 0.85rem; }
+.tabs {
+  display: flex; gap: 0; margin-bottom: 24px;
+  border-bottom: 1px solid var(--border);
+}
+.tab {
+  padding: 12px 24px; cursor: pointer; border: none; background: none;
+  color: var(--text-dim); font-size: 0.95rem; border-bottom: 2px solid transparent;
+  transition: all 0.2s;
+}
+.tab:hover { color: var(--text); }
+.tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+.panel { display: none; }
+.panel.active { display: block; }
+.form-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 12px; padding: 24px; max-width: 700px;
+}
+.form-group { margin-bottom: 16px; }
+.form-group label { display: block; margin-bottom: 6px; font-size: 0.85rem; color: var(--text-dim); }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+input, select {
+  width: 100%; padding: 10px 12px; background: var(--bg); border: 1px solid var(--border);
+  border-radius: 8px; color: var(--text); font-size: 0.9rem; outline: none;
+}
+input:focus, select:focus { border-color: var(--accent); }
+.checkbox-group { display: flex; gap: 16px; flex-wrap: wrap; }
+.checkbox { display: flex; align-items: center; gap: 6px; font-size: 0.9rem; cursor: pointer; }
+.checkbox input { width: auto; }
+.btn-primary {
+  padding: 12px 32px; background: var(--accent); color: #000; border: none;
+  border-radius: 8px; font-size: 0.95rem; font-weight: 600; cursor: pointer;
+  transition: opacity 0.2s; margin-top: 8px;
+}
+.btn-primary:hover { opacity: 0.85; }
+.btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+.btn-back {
+  padding: 8px 16px; background: var(--border); color: var(--text); border: none;
+  border-radius: 6px; cursor: pointer; margin-bottom: 16px; font-size: 0.85rem;
+}
+.history-list { display: flex; flex-direction: column; gap: 8px; }
+.history-item {
+  display: flex; align-items: center; justify-content: space-between;
+  background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+  padding: 14px 18px; cursor: pointer; transition: border-color 0.2s;
+}
+.history-item:hover { border-color: var(--accent); }
+.history-item .ticker { font-weight: 600; font-size: 1.1rem; color: var(--accent); }
+.history-item .meta { color: var(--text-dim); font-size: 0.85rem; }
+.empty-state { color: var(--text-dim); text-align: center; padding: 40px; }
+.report-section {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+  padding: 16px; margin-bottom: 12px;
+}
+.report-section h3 { color: var(--accent); margin-bottom: 8px; font-size: 0.95rem; }
+.report-section .md-content {
+  font-size: 0.85rem; color: var(--text); line-height: 1.6;
+  max-height: 500px; overflow-y: auto;
+}
+.report-section .md-content h1 { font-size: 1.2rem; color: var(--accent); margin: 12px 0 6px; }
+.report-section .md-content h2 { font-size: 1.05rem; color: #a78bfa; margin: 10px 0 6px; }
+.report-section .md-content h3 { font-size: 0.95rem; color: #6ee7b7; margin: 8px 0 4px; }
+.report-section .md-content h4 { font-size: 0.9rem; color: var(--text-dim); margin: 6px 0 4px; }
+.report-section .md-content p { margin: 6px 0; }
+.report-section .md-content ul, .report-section .md-content ol { margin: 6px 0; padding-left: 20px; }
+.report-section .md-content li { margin: 3px 0; }
+.report-section .md-content strong { color: #fbbf24; }
+.report-section .md-content em { color: var(--text-dim); font-style: italic; }
+.report-section .md-content code {
+  background: var(--bg); padding: 2px 5px; border-radius: 3px; font-size: 0.8rem;
+}
+.report-section .md-content blockquote {
+  border-left: 3px solid var(--border); padding-left: 12px; color: var(--text-dim); margin: 8px 0;
+}
+.report-section .md-content table { border-collapse: collapse; width: 100%; margin: 8px 0; }
+.report-section .md-content th, .report-section .md-content td {
+  border: 1px solid var(--border); padding: 6px 10px; text-align: left; font-size: 0.8rem;
+}
+.report-section .md-content th { background: var(--bg); color: var(--accent); }
+.report-section .md-content hr { border: none; border-top: 1px solid var(--border); margin: 12px 0; }
+.progress-log {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+  padding: 16px; max-height: 500px; overflow-y: auto;
+}
+.progress-log .entry {
+  padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 0.85rem;
+}
+.progress-log .entry:last-child { border-bottom: none; }
+.progress-log .time { color: var(--text-dim); margin-right: 8px; }
+.progress-log .msg-status { color: var(--info); }
+.progress-log .msg-error { color: var(--danger); }
+.progress-log .msg-agent_status { color: var(--warning); }
+.progress-log .msg-agent { color: #a78bfa; }
+.progress-log .msg-tool_call { color: #6ee7b7; font-family: monospace; font-size: 0.8rem; }
+.progress-log .msg-tool_result { color: #94a3b8; font-size: 0.8rem; }
+.progress-log .msg-report { color: var(--accent); font-weight: 600; }
+.progress-log .msg-human { color: #fbbf24; }
+.decision-badge {
+  display: inline-block; padding: 8px 20px; border-radius: 6px;
+  font-weight: 700; font-size: 1.1rem; margin: 12px 0;
+}
+.decision-buy { background: #166534; color: #4ade80; }
+.decision-sell { background: #7f1d1d; color: #fca5a5; }
+.decision-hold { background: #78350f; color: #fcd34d; }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <div>
+      <h1>TradingAgents</h1>
+      <span class="subtitle">Multi-Agent LLM Financial Trading Framework</span>
+    </div>
+  </header>
+
+  <div class="tabs">
+    <button class="tab active" data-tab="analyze">New Analysis</button>
+    <button class="tab" data-tab="history">History</button>
+    <button class="tab" data-tab="running">Running</button>
+  </div>
+
+  <div id="panel-analyze" class="panel active">
+    <div class="form-card">
+      <div class="form-group">
+        <label>Ticker Symbol</label>
+        <input type="text" id="ticker" placeholder="e.g. NVDA, AAPL, BTC-USD" value="NVDA">
+      </div>
+      <div class="form-group">
+        <label>Analysis Date</label>
+        <input type="date" id="analysis-date">
+      </div>
+      <div class="form-group">
+        <label>LLM Provider</label>
+        <select id="provider"></select>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Quick-Think Model</label>
+          <select id="quick-model"></select>
+        </div>
+        <div class="form-group">
+          <label>Deep-Think Model</label>
+          <select id="deep-model"></select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Analysts</label>
+        <div class="checkbox-group">
+          <label class="checkbox"><input type="checkbox" value="market" checked> Market</label>
+          <label class="checkbox"><input type="checkbox" value="social" checked> Sentiment</label>
+          <label class="checkbox"><input type="checkbox" value="news" checked> News</label>
+          <label class="checkbox"><input type="checkbox" value="fundamentals" checked> Fundamentals</label>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Research Depth</label>
+          <select id="research-depth">
+            <option value="1">Shallow (1 round)</option>
+            <option value="3">Medium (3 rounds)</option>
+            <option value="5">Deep (5 rounds)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Output Language</label>
+          <select id="output-language">
+            <option value="English">English</option>
+            <option value="Chinese">Chinese (中文)</option>
+            <option value="Japanese">Japanese (日本語)</option>
+            <option value="Korean">Korean (한국어)</option>
+            <option value="Spanish">Spanish</option>
+          </select>
+        </div>
+      </div>
+      <button id="btn-start" class="btn-primary" onclick="startAnalysis()">Start Analysis</button>
+    </div>
+  </div>
+
+  <div id="panel-history" class="panel">
+    <div id="history-list" class="history-list">
+      <p class="empty-state">Loading history...</p>
+    </div>
+    <div id="history-detail" class="history-detail" style="display:none;"></div>
+  </div>
+
+  <div id="panel-running" class="panel">
+    <div id="running-content">
+      <p class="empty-state">No analysis running. Start one from the "New Analysis" tab.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+let providers = [];
+let currentTaskId = null;
+const SETTINGS_KEY = 'tradingagents_settings';
+
+function saveSettings() {
+  const analysts = [...document.querySelectorAll('.checkbox-group input')].map(c => ({value: c.value, checked: c.checked}));
+  const settings = {
+    ticker: document.getElementById('ticker').value,
+    provider: document.getElementById('provider').value,
+    quick_model: document.getElementById('quick-model').value,
+    deep_model: document.getElementById('deep-model').value,
+    analysts: analysts,
+    research_depth: document.getElementById('research-depth').value,
+    output_language: document.getElementById('output-language').value,
+  };
+  localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+}
+
+function restoreSettings() {
+  const raw = localStorage.getItem(SETTINGS_KEY);
+  if (!raw) return;
+  try {
+    const s = JSON.parse(raw);
+    if (s.ticker) document.getElementById('ticker').value = s.ticker;
+    if (s.provider) {
+      const sel = document.getElementById('provider');
+      sel.value = s.provider;
+      updateModels();
+    }
+    if (s.quick_model) {
+      const el = document.getElementById('quick-model');
+      if ([...el.options].some(o => o.value === s.quick_model)) el.value = s.quick_model;
+    }
+    if (s.deep_model) {
+      const el = document.getElementById('deep-model');
+      if ([...el.options].some(o => o.value === s.deep_model)) el.value = s.deep_model;
+    }
+    if (s.analysts) {
+      document.querySelectorAll('.checkbox-group input').forEach(cb => {
+        const saved = s.analysts.find(a => a.value === cb.value);
+        if (saved !== undefined) cb.checked = saved.checked;
+      });
+    }
+    if (s.research_depth) document.getElementById('research-depth').value = s.research_depth;
+    if (s.output_language) document.getElementById('output-language').value = s.output_language;
+  } catch(e) {}
+}
+
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('panel-' + tab.dataset.tab).classList.add('active');
+    if (tab.dataset.tab === 'history') loadHistory();
+  });
+});
+
+document.getElementById('analysis-date').value = new Date().toISOString().split('T')[0];
+
+async function loadProviders() {
+  const res = await fetch('/api/providers');
+  providers = await res.json();
+  const sel = document.getElementById('provider');
+  sel.innerHTML = providers.map(p => `<option value="${p.key}">${p.key}</option>`).join('');
+  sel.addEventListener('change', updateModels);
+  updateModels();
+  restoreSettings();
+}
+
+function updateModels() {
+  const key = document.getElementById('provider').value;
+  const p = providers.find(x => x.key === key);
+  if (!p) return;
+  document.getElementById('quick-model').innerHTML =
+    p.quick_models.map(m => `<option value="${m.value}">${m.label}</option>`).join('');
+  document.getElementById('deep-model').innerHTML =
+    p.deep_models.map(m => `<option value="${m.value}">${m.label}</option>`).join('');
+}
+
+async function loadHistory() {
+  const res = await fetch('/api/history');
+  const data = await res.json();
+  const el = document.getElementById('history-list');
+  const detail = document.getElementById('history-detail');
+  detail.style.display = 'none';
+  el.style.display = 'flex';
+  if (data.length === 0) {
+    el.innerHTML = '<p class="empty-state">No analysis history found.</p>';
+    return;
+  }
+  el.innerHTML = data.map(item => {
+    const statusBadge = item.status === 'interrupted'
+      ? '<span style="color:var(--warning);font-size:0.75rem;margin-left:8px">[interrupted]</span>'
+      : '';
+    return `
+    <div class="history-item" onclick="loadDetail('${item.ticker}','${item.date}')">
+      <div>
+        <span class="ticker">${item.ticker}</span>
+        <span class="meta" style="margin-left:12px">${item.date}</span>${statusBadge}
+      </div>
+      <span class="meta">${new Date(item.created).toLocaleString()}</span>
+    </div>
+  `}).join('');
+}
+
+async function loadDetail(ticker, date) {
+  const res = await fetch(`/api/history/${ticker}/${date}`);
+  const data = await res.json();
+  document.getElementById('history-list').style.display = 'none';
+  const el = document.getElementById('history-detail');
+  el.style.display = 'block';
+
+  let html = `<button class="btn-back" onclick="loadHistory()">Back to list</button>`;
+  html += `<h2 style="margin-bottom:16px;color:var(--accent)">${data.company_of_interest} — ${data.trade_date}</h2>`;
+
+  if (data.final_trade_decision) {
+    html += renderSection('Final Decision', data.final_trade_decision);
+  }
+  if (data.market_report) {
+    html += renderSection('Market Analysis', data.market_report);
+  }
+  if (data.sentiment_report) {
+    html += renderSection('Sentiment Analysis', data.sentiment_report);
+  }
+  if (data.news_report) {
+    html += renderSection('News Analysis', data.news_report);
+  }
+  if (data.fundamentals_report) {
+    html += renderSection('Fundamentals Analysis', data.fundamentals_report);
+  }
+  if (data.investment_debate_state) {
+    const d = data.investment_debate_state;
+    if (d.bull_history) html += renderSection('Bull Researcher', d.bull_history);
+    if (d.bear_history) html += renderSection('Bear Researcher', d.bear_history);
+    if (d.judge_decision) html += renderSection('Research Manager Decision', d.judge_decision);
+  }
+  if (data.risk_debate_state) {
+    const r = data.risk_debate_state;
+    if (r.aggressive_history) html += renderSection('Aggressive Analyst', r.aggressive_history);
+    if (r.conservative_history) html += renderSection('Conservative Analyst', r.conservative_history);
+    if (r.neutral_history) html += renderSection('Neutral Analyst', r.neutral_history);
+    if (r.judge_decision) html += renderSection('Portfolio Manager Decision', r.judge_decision);
+  }
+  el.innerHTML = html;
+}
+
+function renderSection(title, content) {
+  return `<div class="report-section"><h3>${esc(title)}</h3><div class="md-content">${renderMd(content)}</div></div>`;
+}
+
+function renderMd(text) {
+  if (!text) return '';
+  let html = esc(text);
+
+  // Tables: detect lines with | separators
+  html = html.replace(/((?:^|\n)\|.+\|(?:\n\|[-| :]+\|)?(?:\n\|.+\|)+)/g, (match) => {
+    const rows = match.trim().split('\n').filter(r => r.trim());
+    let table = '<table>';
+    rows.forEach((row, i) => {
+      if (row.match(/^\|[\s\-:|]+\|$/)) return; // separator row
+      const cells = row.split('|').filter((_, idx, arr) => idx > 0 && idx < arr.length - 1);
+      const tag = i === 0 ? 'th' : 'td';
+      table += '<tr>' + cells.map(c => `<${tag}>${c.trim()}</${tag}>`).join('') + '</tr>';
+    });
+    table += '</table>';
+    return table;
+  });
+
+  // Headers
+  html = html.replace(/^#### (.+)$/gm, '<h4>$1</h4>');
+  html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+  html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+  html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');
+
+  // Horizontal rule
+  html = html.replace(/^---+$/gm, '<hr>');
+
+  // Bold and italic
+  html = html.replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>');
+  html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+
+  // Inline code
+  html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+
+  // Blockquotes
+  html = html.replace(/^&gt; (.+)$/gm, '<blockquote>$1</blockquote>');
+
+  // Unordered lists
+  html = html.replace(/^[\-\*] (.+)$/gm, '<li>$1</li>');
+  html = html.replace(/((?:<li>.+<\/li>\n?)+)/g, '<ul>$1</ul>');
+
+  // Ordered lists
+  html = html.replace(/^\d+\. (.+)$/gm, '<li>$1</li>');
+
+  // Paragraphs: double newlines
+  html = html.replace(/\n\n+/g, '</p><p>');
+  // Single newlines within paragraphs
+  html = html.replace(/\n/g, '<br>');
+
+  // Wrap in paragraph
+  html = '<p>' + html + '</p>';
+
+  // Clean up empty paragraphs
+  html = html.replace(/<p>\s*<\/p>/g, '');
+  // Fix headers/lists inside paragraphs
+  html = html.replace(/<p>(<h[1-4]>)/g, '$1');
+  html = html.replace(/(<\/h[1-4]>)<\/p>/g, '$1');
+  html = html.replace(/<p>(<ul>)/g, '$1');
+  html = html.replace(/(<\/ul>)<\/p>/g, '$1');
+  html = html.replace(/<p>(<table>)/g, '$1');
+  html = html.replace(/(<\/table>)<\/p>/g, '$1');
+  html = html.replace(/<p>(<hr>)<\/p>/g, '$1');
+  html = html.replace(/<p>(<blockquote>)/g, '$1');
+  html = html.replace(/(<\/blockquote>)<\/p>/g, '$1');
+
+  return html;
+}
+
+async function startAnalysis() {
+  const analysts = [...document.querySelectorAll('.checkbox-group input:checked')].map(c => c.value);
+  if (analysts.length === 0) { alert('Select at least one analyst'); return; }
+
+  const body = {
+    ticker: document.getElementById('ticker').value.trim().toUpperCase(),
+    analysis_date: document.getElementById('analysis-date').value,
+    llm_provider: document.getElementById('provider').value,
+    quick_think_llm: document.getElementById('quick-model').value,
+    deep_think_llm: document.getElementById('deep-model').value,
+    analysts: analysts,
+    research_depth: parseInt(document.getElementById('research-depth').value),
+    output_language: document.getElementById('output-language').value,
+  };
+
+  if (!body.ticker || !body.analysis_date) { alert('Fill in ticker and date'); return; }
+
+  saveSettings();
+  document.getElementById('btn-start').disabled = true;
+  const res = await fetch('/api/analyze', {
+    method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)
+  });
+  const {task_id} = await res.json();
+  currentTaskId = task_id;
+  sessionStorage.setItem('tradingagents_task_id', task_id);
+
+  document.querySelector('[data-tab="running"]').click();
+  streamProgress(task_id);
+}
+
+function streamProgress(taskId) {
+  const el = document.getElementById('running-content');
+  el.innerHTML = '<div class="progress-log" id="progress-log"></div>';
+  const log = document.getElementById('progress-log');
+
+  const es = new EventSource(`/api/analyze/${taskId}/stream`);
+  es.onmessage = (event) => {
+    const data = JSON.parse(event.data);
+    if (data.type === 'done') {
+      es.close();
+      document.getElementById('btn-start').disabled = false;
+      sessionStorage.removeItem('tradingagents_task_id');
+      let badge = '';
+      if (data.decision) {
+        const cls = data.decision.toLowerCase().includes('buy') ? 'decision-buy'
+          : data.decision.toLowerCase().includes('sell') ? 'decision-sell' : 'decision-hold';
+        badge = `<div class="decision-badge ${cls}">${esc(data.decision)}</div>`;
+      }
+      if (data.status === 'completed') {
+        log.innerHTML += `<div class="entry"><span class="time">Done</span><span class="msg-status">Analysis completed!</span>${badge}</div>`;
+      } else {
+        log.innerHTML += `<div class="entry"><span class="time">Error</span><span class="msg-error">${esc(data.error || 'Unknown error')}</span></div>`;
+      }
+      return;
+    }
+    const cls = 'msg-' + (data.type || 'status');
+    const typeLabels = {
+      status: '[STATUS]', agent: '[AGENT]', tool_call: '[TOOL]',
+      tool_result: '[RESULT]', agent_status: '[PROGRESS]',
+      report: '[REPORT]', error: '[ERROR]', human: '[INPUT]'
+    };
+    const label = typeLabels[data.type] || '[INFO]';
+    log.innerHTML += `<div class="entry"><span class="time">${data.time || ''}</span><span class="${cls}">${label} ${esc(data.content)}</span></div>`;
+    log.scrollTop = log.scrollHeight;
+  };
+  es.onerror = () => {
+    es.close();
+    document.getElementById('btn-start').disabled = false;
+    log.innerHTML += `<div class="entry"><span class="msg-error">Connection lost</span></div>`;
+  };
+}
+
+function esc(s) {
+  if (!s) return '';
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function resumeTask(ticker, date) {
+  document.getElementById('ticker').value = ticker;
+  document.getElementById('analysis-date').value = date;
+  document.querySelector('[data-tab="analyze"]').click();
+}
+
+loadProviders();
+
+// Auto-reconnect to running task after page refresh
+(async function reconnect() {
+  const savedTaskId = sessionStorage.getItem('tradingagents_task_id');
+  if (savedTaskId) {
+    try {
+      const res = await fetch('/api/analyze/active');
+      const tasks = await res.json();
+      const task = tasks.find(t => t.task_id === savedTaskId);
+      if (task && (task.status === 'running' || task.progress_count > 0)) {
+        currentTaskId = savedTaskId;
+        document.getElementById('btn-start').disabled = task.status === 'running';
+        document.querySelector('[data-tab="running"]').click();
+        streamProgress(savedTaskId);
+        return;
+      } else {
+        sessionStorage.removeItem('tradingagents_task_id');
+      }
+    } catch(e) {}
+  }
+
+  // Check for resumable checkpoints (from a previous server crash)
+  try {
+    const res = await fetch('/api/analyze/resumable');
+    const resumable = await res.json();
+    if (resumable.length > 0) {
+      const el = document.getElementById('running-content');
+      let html = '<div style="padding:16px">';
+      html += '<h3 style="color:var(--warning);margin-bottom:12px">Interrupted Tasks</h3>';
+      html += '<p style="color:var(--text-dim);margin-bottom:16px">These analyses were interrupted. Click to re-run with the same ticker and date.</p>';
+      html += resumable.map(r => `
+        <div class="history-item" onclick="resumeTask('${esc(r.ticker)}','${esc(r.date)}')">
+          <div>
+            <span class="ticker">${esc(r.ticker)}</span>
+            <span class="meta" style="margin-left:12px">${esc(r.date)}</span>
+          </div>
+          <span class="meta" style="color:var(--warning)">${r.sections_done}/4 sections done — click to re-run</span>
+        </div>
+      `).join('');
+      html += '</div>';
+      el.innerHTML = html;
+    }
+  } catch(e) {}
+})();
+</script>
+</body>
+</html>
