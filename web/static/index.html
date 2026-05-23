@@ -287,7 +287,7 @@ async function loadProviders() {
   const res = await fetch('/api/providers');
   providers = await res.json();
   const sel = document.getElementById('provider');
-  sel.innerHTML = providers.map(p => `<option value="${p.key}">${p.key}</option>`).join('');
+  sel.innerHTML = providers.map(p => `<option value="${p.key}">${p.label || p.key}</option>`).join('');
   sel.addEventListener('change', updateModels);
 
   // Apply .env defaults first, then override with localStorage if present
@@ -491,10 +491,12 @@ async function startAnalysis() {
   const analysts = [...document.querySelectorAll('.checkbox-group input:checked')].map(c => c.value);
   if (analysts.length === 0) { alert('Select at least one analyst'); return; }
 
+  const selectedProvider = providers.find(p => p.key === document.getElementById('provider').value);
   const body = {
     ticker: document.getElementById('ticker').value.trim().toUpperCase(),
     analysis_date: document.getElementById('analysis-date').value,
-    llm_provider: document.getElementById('provider').value,
+    llm_provider: selectedProvider?.key || document.getElementById('provider').value,
+    backend_url: selectedProvider?.backend_url || null,
     quick_think_llm: document.getElementById('quick-model').value,
     deep_think_llm: document.getElementById('deep-model').value,
     analysts: analysts,

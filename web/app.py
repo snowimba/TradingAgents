@@ -24,6 +24,7 @@ _STATIC_DIR = Path(__file__).parent / "static"
 app.mount("/static", StaticFiles(directory=str(_STATIC_DIR)), name="static")
 
 _running_tasks: Dict[str, Dict[str, Any]] = {}
+_CUSTOM_PROVIDER_KEY = "custom-openai-compatible"
 
 
 class AnalysisRequest(BaseModel):
@@ -46,11 +47,28 @@ async def index():
 @app.get("/api/providers")
 async def get_providers():
     providers = []
+    custom_backend_url = DEFAULT_CONFIG.get("backend_url")
+    if custom_backend_url:
+        providers.append({
+            "key": _CUSTOM_PROVIDER_KEY,
+            "label": "custom (OpenAI-compatible)",
+            "backend_url": custom_backend_url,
+            "quick_models": [{
+                "label": f"{DEFAULT_CONFIG.get('quick_think_llm', 'custom')} (from .env)",
+                "value": DEFAULT_CONFIG.get("quick_think_llm", "custom"),
+            }],
+            "deep_models": [{
+                "label": f"{DEFAULT_CONFIG.get('deep_think_llm', 'custom')} (from .env)",
+                "value": DEFAULT_CONFIG.get("deep_think_llm", "custom"),
+            }],
+        })
     for key, modes in MODEL_OPTIONS.items():
         if key.endswith("-cn"):
             continue
         providers.append({
             "key": key,
+            "label": key,
+            "backend_url": "",
             "quick_models": [{"label": label, "value": value} for label, value in modes["quick"]],
             "deep_models": [{"label": label, "value": value} for label, value in modes["deep"]],
         })
@@ -61,7 +79,7 @@ async def get_providers():
 async def get_defaults():
     """Return current config defaults from .env / DEFAULT_CONFIG."""
     return {
-        "llm_provider": DEFAULT_CONFIG.get("llm_provider", "openai"),
+        "llm_provider": _CUSTOM_PROVIDER_KEY if DEFAULT_CONFIG.get("backend_url") else DEFAULT_CONFIG.get("llm_provider", "openai"),
         "deep_think_llm": DEFAULT_CONFIG.get("deep_think_llm", ""),
         "quick_think_llm": DEFAULT_CONFIG.get("quick_think_llm", ""),
         "backend_url": DEFAULT_CONFIG.get("backend_url", ""),
@@ -256,10 +274,9 @@ async def _run_analysis(task_id: str, req: AnalysisRequest):
         config["max_risk_discuss_rounds"] = req.research_depth
         config["quick_think_llm"] = req.quick_think_llm
         config["deep_think_llm"] = req.deep_think_llm
-        config["llm_provider"] = req.llm_provider
+        config["llm_provider"] = "openai" if req.llm_provider == _CUSTOM_PROVIDER_KEY else req.llm_provider
+        config["backend_url"] = req.backend_url or None
         config["output_language"] = req.output_language
-        if req.backend_url:
-            config["backend_url"] = req.backend_url
 
         emit("status", "Initializing trading agents graph...")
 
